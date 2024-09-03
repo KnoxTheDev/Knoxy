@@ -1,53 +1,41 @@
 package knoxy.knoxy;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.network.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.util.math.Vec3d;
+
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket.Mode;
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class Knoxy implements ModInitializer {
-    public static final String MOD_ID = "knoxy";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+public class Knoxy {
 
-    @Override
-    public void onInitialize() {
-        LOGGER.info("Hello Fabric world!");
-        NoFall.init();
-        NoKnockback.init();
-    }
-}
+    @Environment(EnvType.CLIENT)
+    public void onEnable() {
+        // Get the Minecraft client instance
+        MinecraftClient client = MinecraftClient.getInstance();
 
-class NoFall {
-    public static void init() {
-        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
-            client.execute(() -> {
-                ClientPlayerEntity player = client.player;
-                if (player != null) {
-                    player.networkHandler.sendPacket(new ClientCommandC2SPacket(player, Mode.START_FALL_FLYING));
+        // Get the client play network handler
+        ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
+
+        // Create a new thread to send the packets
+        new Thread(() -> {
+            while (true) {
+                // Check if the player is falling
+                if (client.player.isFallFlying() || client.player.getVelocity().y < 0) {
+                    // Send the "OnGround" packet to the server
+                    Packet<?> packet = new PlayerMoveC2SPacket.OnGroundPacket(true);
+                    networkHandler.sendPacket(packet);
                 }
-            });
-        });
-    }
-}
 
-class NoKnockback {
-    public static void init() {
-        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
-            client.execute(() -> {
-                ClientPlayNetworking.registerGlobalReceiver(EntityVelocityUpdateS2CPacket.NETWORK_ID, (client1, packet) -> {
-                    if (packet.getEntityId() == client1.player.getId()) {
-                        // Cancel the knockback by sending a new packet with zero velocity
-                        EntityVelocityUpdateS2CPacket newPacket = new EntityVelocityUpdateS2CPacket(packet.getEntityId(), 0, 0, 0, false);
-                        client1.player.networkHandler.sendPacket(newPacket);
-                    }
-                });
-            });
-        });
+                // Sleep for a short period of time to avoid spamming the server
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 }
