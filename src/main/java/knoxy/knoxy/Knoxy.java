@@ -40,8 +40,8 @@ class NoKnockback {
     public static void init() {
         ClientPlayConnectionEvents.INIT.register((handler, client) -> {
             client.execute(() -> {
-                ClientPlayNetworking.registerReceiver(EntityVelocityUpdateS2CPacket.class, (client1, handler1, packet, sender) -> {
-                    if (packet.getId() == client1.player.getId()) {
+                ClientPlayNetworking.registerGlobalReceiver(EntityVelocityUpdateS2CPacket.ID, (client1, packet) -> {
+                    if (packet.getEntityId() == client1.player.getId()) {
                         // Cancel the knockback by sending a new packet with zero velocity
                         EntityVelocityUpdateS2CPacket newPacket = new EntityVelocityUpdateS2CPacket(packet.getEntityId(), 0, 0, 0, false);
                         client1.player.networkHandler.sendPacket(newPacket);
