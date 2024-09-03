@@ -4,7 +4,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.PacketSender;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
@@ -58,7 +57,7 @@ public class Knoxy implements ClientModInitializer {
                     storedPosition = player.getPos();
                     isFreecamActive = true;
 
-                    // Intercept movement packets to simulate flyhack
+                    // Register packet receiver to intercept movement packets
                     ClientPlayNetworking.registerGlobalReceiver(PlayerMoveC2SPacket.class, this::onMovePacket);
 
                     // Notify user
@@ -85,13 +84,19 @@ public class Knoxy implements ClientModInitializer {
     // Handles movement while fly hack is active
     private void handleFlyMode(MinecraftClient client) {
         // Movement is already handled by intercepting packets
-        // You can add more sophisticated handling if needed
+        // Additional logic can be added if necessary
     }
 
     // Intercepts and drops move packets to prevent detection
-    private void onMovePacket(MinecraftClient client, PacketSender sender, PacketByteBuf buf) {
-        // Simply dropping the packet to prevent the server from receiving movement updates
-        // No action required here; the packet is effectively ignored
+    private void onMovePacket(MinecraftClient client, net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket packet, PacketByteBuf buf) {
+        try {
+            // Simply dropping the packet to prevent the server from receiving movement updates
+            // No action required here; the packet is effectively ignored
+        } catch (Exception e) {
+            // Handle exceptions and log errors
+            e.printStackTrace();
+            client.inGameHud.setOverlayMessage(Text.of("Error processing movement packet"), false);
+        }
     }
 
     // Sync player's position back to the stored coordinates
