@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.c2s.play.OnGroundOnly;
 import net.minecraft.util.Identifier;
 
 public class Knoxy implements ClientModInitializer, ModInitializer {
@@ -21,9 +22,7 @@ public class Knoxy implements ClientModInitializer, ModInitializer {
             if (player != null && player.fallDistance > 0) {
                 player.fallDistance = 0;
                 // Send packet to server to update onGround status
-                PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-                buf.writeBoolean(true);
-                ClientPlayNetworking.send(PACKET_ID, buf);
+                player.networkHandler.sendPacket(new OnGroundOnly(true));
             }
         });
 
