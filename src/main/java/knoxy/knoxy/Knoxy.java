@@ -1,9 +1,7 @@
 package knoxy.knoxy;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
@@ -32,7 +30,7 @@ public class Knoxy implements ClientModInitializer {
         ));
 
         // Event listener for key presses
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (flyHackKey.wasPressed()) {
                 toggleFlyHack(client);
             }
@@ -57,18 +55,12 @@ public class Knoxy implements ClientModInitializer {
                     storedPosition = player.getPos();
                     isFreecamActive = true;
 
-                    // Register packet receiver to intercept movement packets
-                    ClientPlayNetworking.registerGlobalReceiver(PlayerMoveC2SPacket.class, this::onMovePacket);
-
                     // Notify user
                     client.inGameHud.setOverlayMessage(Text.of("FlyHack Enabled"), false);
                 } else {
                     // Sync player position back to the stored position when toggled off
                     isFreecamActive = false;
-                    sendPlayerPositionUpdate(client);
-
-                    // Unregister movement packet interceptor
-                    ClientPlayNetworking.unregisterGlobalReceiver(PlayerMoveC2SPacket.class);
+                    sendPlayerPositionUpdate(client, storedPosition);
 
                     // Notify user
                     client.inGameHud.setOverlayMessage(Text.of("FlyHack Disabled"), false);
@@ -87,27 +79,15 @@ public class Knoxy implements ClientModInitializer {
         // Additional logic can be added if necessary
     }
 
-    // Intercepts and drops move packets to prevent detection
-    private void onMovePacket(MinecraftClient client, net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket packet, PacketByteBuf buf) {
-        try {
-            // Simply dropping the packet to prevent the server from receiving movement updates
-            // No action required here; the packet is effectively ignored
-        } catch (Exception e) {
-            // Handle exceptions and log errors
-            e.printStackTrace();
-            client.inGameHud.setOverlayMessage(Text.of("Error processing movement packet"), false);
-        }
-    }
-
     // Sync player's position back to the stored coordinates
-    private void sendPlayerPositionUpdate(MinecraftClient client) {
+    private void sendPlayerPositionUpdate(MinecraftClient client, Vec3d position) {
         try {
             if (client.player != null) {
                 // Create a position packet with the stored position data
                 PlayerMoveC2SPacket.PositionAndOnGround positionPacket = new PlayerMoveC2SPacket.PositionAndOnGround(
-                        storedPosition.x,
-                        storedPosition.y,
-                        storedPosition.z,
+                        position.x,
+                        position.y,
+                        position.z,
                         true // On ground status
                 );
 
