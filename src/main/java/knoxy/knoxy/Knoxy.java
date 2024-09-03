@@ -2,6 +2,7 @@ package knoxy.knoxy;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
@@ -39,9 +40,11 @@ class NoKnockback {
     public static void init() {
         ClientPlayConnectionEvents.INIT.register((handler, client) -> {
             client.execute(() -> {
-                client.getNetworkHandler().registerReceiver(EntityVelocityUpdateS2CPacket.class, (packet) -> {
-                    if (packet.getEntityId() == client.player.getEntityId()) {
-                        packet.setVelocity(0, 0, 0);
+                ClientPlayNetworking.registerReceiver(EntityVelocityUpdateS2CPacket.class, (client1, handler1, packet, sender) -> {
+                    if (packet.getId() == client1.player.getId()) {
+                        // Cancel the knockback by sending a new packet with zero velocity
+                        EntityVelocityUpdateS2CPacket newPacket = new EntityVelocityUpdateS2CPacket(packet.getEntityId(), 0, 0, 0, false);
+                        client1.player.networkHandler.sendPacket(newPacket);
                     }
                 });
             });
