@@ -1,8 +1,7 @@
 package knoxy.knoxy;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.networking.v1.PacketConsumer;
-import net.fabricmc.fabric.api.networking.v1.PacketContext;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
@@ -25,39 +24,27 @@ public class Knoxy implements ModInitializer {
 
 class NoFall {
     public static void init() {
-        FabricClient.getInstance().getNetworkManager().registerReceiver(
-            ServerboundMovePlayerPacket.class,
-            new PacketConsumer<ServerboundMovePlayerPacket>() {
-                @Override
-                public void accept(PacketContext context, ServerboundMovePlayerPacket packet) {
-                    if (packet.getY() < packet.getPlayer().getY()) {
-                        packet.getPlayer().fallDistance = 0.0F;
-                    }
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
+            client.execute(() -> {
+                ClientPlayerEntity player = client.player;
+                if (player != null) {
+                    player.networkHandler.sendPacket(new ClientCommandC2SPacket(player, Mode.START_FALL_FLYING));
                 }
-            }
-        );
-
-        MinecraftClient.getInstance().execute(() -> {
-            ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            if (player != null) {
-                player.networkHandler.sendPacket(new ClientCommandC2SPacket(player, Mode.START_FALL_FLYING));
-            }
+            });
         });
     }
 }
 
 class NoKnockback {
     public static void init() {
-        FabricClient.getInstance().getNetworkManager().registerReceiver(
-            EntityVelocityUpdateS2CPacket.class,
-            new PacketConsumer<EntityVelocityUpdateS2CPacket>() {
-                @Override
-                public void accept(PacketContext context, EntityVelocityUpdateS2CPacket packet) {
-                    if (packet.getEntityId() == MinecraftClient.getInstance().player.getEntityId()) {
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> {
+            client.execute(() -> {
+                client.getNetworkHandler().registerReceiver(EntityVelocityUpdateS2CPacket.class, (packet) -> {
+                    if (packet.getEntityId() == client.player.getEntityId()) {
                         packet.setVelocity(0, 0, 0);
                     }
-                }
-            }
-        );
+                });
+            });
+        });
     }
 }
