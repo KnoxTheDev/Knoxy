@@ -15,7 +15,7 @@
 	"icon": "assets/knoxy/icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": [
+		"client": [
 			"knoxy.knoxy.Knoxy"
 		],
 		"fabric-datagen": [
